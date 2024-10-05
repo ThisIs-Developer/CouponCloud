@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="coupon.png">
+    <title>CouponCloud - Modern Coupon Sharing Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: rgba(255, 255, 255, 0.1);
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(45deg, #f3f3f3, #e6e6e6);
+            color: var(--text-color);
+        }
+
+        .glassmorphism {
+            background: var(--background-color);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .navbar {
+            padding: 1rem 2rem;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .coupon-card {
+            transition: all 0.3s ease;
+        }
+
+        .coupon-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .coupon-image {
+            height: 150px;
+            object-fit: cover;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .coupon-code {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .coupon-code.revealed {
+            filter: blur(0);
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        #darkModeToggle {
+            cursor: pointer;
+        }
+
+        .dark-mode {
+            --background-color: rgba(0, 0, 0, 0.7);
+            --text-color: #f1f1f1;
+        }
+
+        .dark-mode body {
+            background: linear-gradient(45deg, #1a1a1a, #2c2c2c);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg glassmorphism">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">CouponShare</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Upload Coupon</a>
+                    </li>
+                </ul>
+                <form class="d-flex" role="search">
+                    <input class="form-control me-2" type="search" placeholder="Search coupons" aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+                <div class="ms-3">
+                    <i id="darkModeToggle" class="fas fa-moon"></i>
+                </div>
+                <div class="ms-3" id="googleSignInButton">
+                    <button class="btn btn-outline-primary">
+                        <i class="fab fa-google me-2"></i>Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="glassmorphism p-3">
+                    <h5>Categories</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent">Retail</li>
+                        <li class="list-group-item bg-transparent">Electronics</li>
+                        <li class="list-group-item bg-transparent">Food</li>
+                        <li class="list-group-item bg-transparent">Travel</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="row" id="couponContainer">
+                    <!-- Coupon cards will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <script>
+        // Mock coupon data
+        const coupons = [
+            { id: 1, code: 'SAVE20', company: 'Amazon', category: 'Retail', image: '/api/placeholder/400/320', user: { name: 'John Doe', avatar: '/api/placeholder/30/30' } },
+            { id: 2, code: 'TECH15', company: 'Best Buy', category: 'Electronics', image: '/api/placeholder/400/320', user: { name: 'Jane Smith', avatar: '/api/placeholder/30/30' } },
+            { id: 3, code: 'FOOD10', company: 'Uber Eats', category: 'Food', image: '/api/placeholder/400/320', user: { name: 'Mike Johnson', avatar: '/api/placeholder/30/30' } },
+        ];
+
+        // Function to create coupon cards
+        function createCouponCard(coupon) {
+            return `
+                <div class="col-md-4 mb-4">
+                    <div class="card coupon-card glassmorphism">
+                        <img src="${coupon.image}" class="card-img-top coupon-image" alt="${coupon.company}">
+                        <div class="card-body">
+                            <h5 class="card-title">${coupon.company}</h5>
+                            <p class="card-text">${coupon.category}</p>
+                            <p class="coupon-code" data-code="${coupon.code}">••••••••</p>
+                            <button class="btn btn-primary btn-sm reveal-code" data-id="${coupon.id}">Reveal Code</button>
+                            <div class="mt-3 d-flex align-items-center">
+                                <img src="${coupon.user.avatar}" alt="${coupon.user.name}" class="user-avatar me-2">
+                                <small>${coupon.user.name}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Populate coupon container
+        const couponContainer = document.getElementById('couponContainer');
+        coupons.forEach(coupon => {
+            couponContainer.innerHTML += createCouponCard(coupon);
+        });
+
+        // Reveal code functionality
+        document.querySelectorAll('.reveal-code').forEach(button => {
+            button.addEventListener('click', function() {
+                const couponId = this.getAttribute('data-id');
+                const codeElement = this.parentElement.querySelector('.coupon-code');
+                codeElement.textContent = codeElement.getAttribute('data-code');
+                codeElement.classList.add('revealed');
+                this.textContent = 'Copy Code';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-success');
+            });
+        });
+
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            this.classList.toggle('fa-sun');
+            this.classList.toggle('fa-moon');
+        });
+
+        // Google Sign-In
+        function onSignIn(googleUser) {
+            var profile = googleUser.getBasicProfile();
+            console.log('ID: ' + profile.getId());
+            console.log('Name: ' + profile.getName());
+            console.log('Image URL: ' + profile.getImageUrl());
+            console.log('Email: ' + profile.getEmail());
+            // You can update the UI here to show the user is signed in
+        }
+
+        // Initialize Google Sign-In
+        function initGoogleSignIn() {
+            gapi.load('auth2', function() {
+                gapi.auth2.init({
+                    client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'
+                });
+            });
+        }
+
+        // Call initGoogleSignIn when the page loads
+        window.onload = initGoogleSignIn;
+    </script>
+</body>
+</html>
